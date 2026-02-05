@@ -1,0 +1,5 @@
+pyTelegramBotAPI==4.16.1
+PyPDF2==3.0.1
+gspread==6.1.2
+google-auth==2.34.0
+pytest==8.3.2
