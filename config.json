@@ -64,5 +64,18 @@
     "fio_column_header": "Фамилия Имя Отчество",
     "header_row_index": 1,
     "value_to_set": true
+  },
+  "qa": {
+    "enabled": true,
+    "provider": "openai",
+    "openai_api_key": "PUT_OPENAI_KEY_HERE",
+    "openai_model": "gpt-4o-mini",
+    "knowledge_base_path": "knowledge_base.md",
+    "max_knowledge_chars": 12000,
+    "max_answer_tokens": 500,
+    "rate_limit_cooldown_sec": 60,
+    "fallback_local_enabled": true,
+    "cache_size": 50
+    "max_answer_tokens": 500
   }
 }

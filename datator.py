@@ -18,6 +18,7 @@ from decision_engine import DecisionStatus, decide
 from errors import ErrorDetail, ErrorCode, format_user_report
 from google_service import update_sheet
 from pdf_controller import PdfController
+from qa_service import QaService
 from structure_validator import StructureValidator
 from title_page_analyzer import StubTitleAnalyzer, YoloTesseractTitleAnalyzer
 
@@ -70,6 +71,7 @@ class PortfolioBot:
         self.validator = StructureValidator(self.config)
         self.pdf_controller = PdfController()
         self.title_analyzer = self._build_title_analyzer()
+        self.qa_service = QaService(self.config)
         self.logger = logging.getLogger("bot")
         self._configure_logging()
         self._register_handlers()
@@ -195,6 +197,10 @@ class PortfolioBot:
             if message.text.startswith("/"):
                 return
             self.bot.send_message(message.chat.id, "Отправьте ZIP-архив с портфолио для проверки.")
+            # Ответы на вопросы студентов через базу знаний
+            if message.text.startswith("/"):
+                return
+            self._handle_question(message)
 
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith("manual_request:"))
         def handle_manual_request(call):
@@ -327,6 +333,30 @@ class PortfolioBot:
             "Не удалось отметить в журнале. Отправьте на ручную проверку.",
             reply_markup=markup,
         )
+
+    def _handle_question(self, message) -> None:
+        # Ответ на текстовые вопросы через OpenAI и базу знаний
+        try:
+            result = self.qa_service.answer(message.text.strip())
+        except Exception as exc:
+            self.logger.exception("Ошибка при ответе на вопрос: %s", exc)
+            self.bot.send_message(message.chat.id, "Не удалось обработать вопрос. Попробуйте позже.")
+            return
+        if not result.success:
+            if result.error == "Missing OpenAI API key":
+                self.bot.send_message(message.chat.id, "Справка временно отключена. Обратитесь к администратору.")
+            elif result.error == "Insufficient quota":
+                self.bot.send_message(message.chat.id, "Квота OpenAI закончилась. Попробуйте позже.")
+            elif result.error == "Rate limit exceeded":
+                self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
+            elif result.error == "Rate limit cooldown":
+                self.bot.send_message(message.chat.id, "Справка временно недоступна. Попробуйте позже.")
+            elif result.error == "Rate limit exceeded":
+                self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
+            else:
+                self.bot.send_message(message.chat.id, "Справка сейчас недоступна.")
+            return
+        self.bot.send_message(message.chat.id, result.answer)
 
     def _move_to_storage(self, temp_path: str, group: str, student_short: str, discipline_info: dict) -> None:
         # Перемещаем архив в постоянное хранилище
