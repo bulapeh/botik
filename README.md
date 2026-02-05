@@ -21,6 +21,9 @@
    - `telegram.token` — токен бота.
    - `google_sheets.service_account_json_path` — путь к JSON сервисного аккаунта.
    - `qa.openai_api_key` — ключ OpenAI (для ответов на вопросы).
+   - `qa.rate_limit_cooldown_sec` — пауза (в секундах) между повторными запросами после 429.
+   - `qa.fallback_local_enabled` — выдавать ответ из `knowledge_base.md`, если OpenAI недоступен.
+   - `qa.cache_size` — размер кэша ответов, чтобы не тратить токены на одинаковые вопросы.
 3. Запустите бота:
    ```bash
    python datator.py

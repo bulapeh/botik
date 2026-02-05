@@ -72,6 +72,10 @@
     "openai_model": "gpt-4o-mini",
     "knowledge_base_path": "knowledge_base.md",
     "max_knowledge_chars": 12000,
+    "max_answer_tokens": 500,
+    "rate_limit_cooldown_sec": 60,
+    "fallback_local_enabled": true,
+    "cache_size": 50
     "max_answer_tokens": 500
   }
 }

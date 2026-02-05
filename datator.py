@@ -341,6 +341,12 @@ class PortfolioBot:
         if not result.success:
             if result.error == "Missing OpenAI API key":
                 self.bot.send_message(message.chat.id, "Справка временно отключена. Обратитесь к администратору.")
+            elif result.error == "Insufficient quota":
+                self.bot.send_message(message.chat.id, "Квота OpenAI закончилась. Попробуйте позже.")
+            elif result.error == "Rate limit exceeded":
+                self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
+            elif result.error == "Rate limit cooldown":
+                self.bot.send_message(message.chat.id, "Справка временно недоступна. Попробуйте позже.")
             elif result.error == "Rate limit exceeded":
                 self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
             else:
