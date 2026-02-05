@@ -1,3 +1,5 @@
+"""Интерфейс и реализации анализа титульного листа."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,12 +10,14 @@ from utils import TitleAnalysisResult
 
 class TitlePageAnalyzer:
     def analyze(self, title_image: bytes) -> TitleAnalysisResult:
+        # Контракт: вернуть confidence и диагностические поля
         raise NotImplementedError
 
 
 @dataclass
 class StubTitleAnalyzer(TitlePageAnalyzer):
     def analyze(self, title_image: bytes) -> TitleAnalysisResult:
+        # Заглушка: ничего не распознаём
         return TitleAnalysisResult(
             signature_confidence=0.0,
             zacheno_confidence=0.0,
@@ -28,6 +32,7 @@ class YoloTesseractTitleAnalyzer(TitlePageAnalyzer):
     tesseract_cmd: str
 
     def analyze(self, title_image: bytes) -> TitleAnalysisResult:
+        # Полная CV-проверка (YOLO + OCR)
         try:
             import cv2
             import numpy as np
@@ -36,10 +41,13 @@ class YoloTesseractTitleAnalyzer(TitlePageAnalyzer):
         except ImportError as exc:
             raise RuntimeError("CV модули не установлены") from exc
 
+        # Настройка пути к tesseract
         pytesseract.pytesseract.tesseract_cmd = self.tesseract_cmd
+        # Декодируем PNG в изображение OpenCV
         image_array = np.frombuffer(title_image, dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
+        # Запускаем YOLO-модель и получаем детекции
         model = YOLO(self.yolo_weights_path)
         results = model(image)
 
@@ -53,8 +61,10 @@ class YoloTesseractTitleAnalyzer(TitlePageAnalyzer):
                 label = result.names.get(int(box.cls), "")
                 conf = float(box.conf)
                 if label == "signature":
+                    # Максимальная уверенность по подписи
                     signature_confidence = max(signature_confidence, conf)
                 if label == "zacheno":
+                    # OCR по зоне отметки "зачтено"
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     crop = image[y1:y2, x1:x2]
                     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)

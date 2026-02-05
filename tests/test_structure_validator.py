@@ -5,6 +5,7 @@ from structure_validator import StructureValidator
 
 
 def build_config():
+    # Минимальная конфигурация для тестов
     return {
         "disciplines": [
             {
@@ -23,6 +24,7 @@ def build_config():
 
 
 def create_zip(tmp_path: Path, files: dict[str, bytes]) -> Path:
+    # Утилита для сборки ZIP прямо в тесте
     zip_path = tmp_path / "portfolio.zip"
     with zipfile.ZipFile(zip_path, "w") as archive:
         for name, data in files.items():
@@ -31,6 +33,7 @@ def create_zip(tmp_path: Path, files: dict[str, bytes]) -> Path:
 
 
 def test_valid_structure(tmp_path: Path):
+    # Базовый happy path
     config = build_config()
     validator = StructureValidator(config)
     files = {
@@ -48,6 +51,7 @@ def test_valid_structure(tmp_path: Path):
 
 
 def test_extra_files_rejected(tmp_path: Path):
+    # Служебные файлы должны приводить к ошибке
     config = build_config()
     validator = StructureValidator(config)
     files = {

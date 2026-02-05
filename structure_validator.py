@@ -1,3 +1,5 @@
+"""Проверка структуры ZIP и правил именования PDF без полной распаковки."""
+
 import re
 import zipfile
 from typing import Any, Dict
@@ -6,12 +8,15 @@ from check_context import CheckContext
 from errors import ErrorCode, ErrorDetail
 from utils import is_valid_student_short, split_filename
 
+# PDF должен содержать ровно 4 блока, разделённых "_".
 PDF_NAME_RE = re.compile(r"^[^_]+_[^_]+_[^_]+_[^_]+$")
+# Формат кода работы: буквы + опциональный номер.
 WORKCODE_RE = re.compile(r"^([A-ZА-ЯЁ]{2,3})(\d+)?$")
 
 
 class StructureValidator:
     def __init__(self, config: Dict[str, Any]) -> None:
+        # Сохраняем справочники для проверки
         self.config = config
         self.disciplines = config["disciplines"]
         self.worktypes = config["worktypes"]
@@ -19,6 +24,7 @@ class StructureValidator:
         self.discipline_full_map = {d["discipline_full"]: d for d in self.disciplines}
 
     def _build_worktype_map(self) -> dict[str, dict]:
+        # Готовим быстрый доступ по названию папки типа работ
         mapping: dict[str, dict] = {}
         for item in self.worktypes:
             if "alias_of" in item:
@@ -28,6 +34,7 @@ class StructureValidator:
         return mapping
 
     def validate(self, zip_path: str) -> CheckContext:
+        # Основная точка входа для проверки ZIP
         context = CheckContext(zip_path=zip_path)
         context.worktype_map = self.worktype_map
         try:
@@ -43,6 +50,7 @@ class StructureValidator:
         return context
 
     def _validate_entries(self, archive: zipfile.ZipFile, context: CheckContext) -> None:
+        # Собираем ключевые параметры из всех элементов архива
         root_group = None
         student = None
         discipline = None
@@ -50,6 +58,7 @@ class StructureValidator:
 
         for info in archive.infolist():
             name = info.filename
+            # Запрещаем служебные файлы/папки
             if "__MACOSX" in name or name.lower().endswith("thumbs.db"):
                 context.errors.append(
                     ErrorDetail(
@@ -64,6 +73,7 @@ class StructureValidator:
                 continue
 
             if info.is_dir():
+                # Лишние уровни каталогов запрещены
                 if len(parts) > 4:
                     context.errors.append(
                         ErrorDetail(
@@ -75,6 +85,7 @@ class StructureValidator:
                 continue
 
             if len(parts) != 5:
+                # Файлы должны быть строго на 5-м уровне
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -89,6 +100,7 @@ class StructureValidator:
             if root_group is None:
                 root_group = group
             elif group != root_group:
+                # Больше одной группы в архиве
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -100,6 +112,7 @@ class StructureValidator:
             if student is None:
                 student = student_short
             elif student_short != student:
+                # Больше одного студента в архиве
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -109,6 +122,7 @@ class StructureValidator:
                 )
 
             if not is_valid_student_short(student_short):
+                # Формат папки студента должен быть "Фамилия ИО"
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -120,6 +134,7 @@ class StructureValidator:
             if discipline is None:
                 discipline = discipline_full
             elif discipline_full != discipline:
+                # Разрешена только одна дисциплина
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.MULTIPLE_DISCIPLINES,
@@ -129,6 +144,7 @@ class StructureValidator:
                 )
 
             if discipline_full not in self.discipline_full_map:
+                # Дисциплина должна быть из whitelist
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -138,6 +154,7 @@ class StructureValidator:
                 )
 
             if worktype_folder not in self.worktype_map:
+                # Тип работы должен быть из whitelist
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.UNKNOWN_WORKTYPE,
@@ -148,6 +165,7 @@ class StructureValidator:
 
             base, ext = split_filename(filename)
             if ext.lower() != "pdf":
+                # На последнем уровне разрешены только PDF
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_STRUCTURE,
@@ -157,6 +175,7 @@ class StructureValidator:
                 )
             else:
                 if not PDF_NAME_RE.match(base):
+                    # PDF-имя должно соответствовать шаблону
                     context.errors.append(
                         ErrorDetail(
                             code=ErrorCode.INVALID_FILENAME,
@@ -187,6 +206,7 @@ class StructureValidator:
             )
         context.pdf_paths = pdf_paths
         if not pdf_paths:
+            # Если PDF не найдено — сразу ошибка
             context.errors.append(
                 ErrorDetail(
                     code=ErrorCode.INVALID_STRUCTURE,
@@ -206,6 +226,7 @@ class StructureValidator:
     ) -> None:
         group_part, student_part, discipline_part, work_part = base.split("_")
         if group_part != group:
+            # Группа в имени файла должна совпадать с корнем
             context.errors.append(
                 ErrorDetail(
                     code=ErrorCode.INVALID_FILENAME,
@@ -214,6 +235,7 @@ class StructureValidator:
                 )
             )
         if student_part != student_short:
+            # ФИО в имени файла должно совпадать с папкой
             context.errors.append(
                 ErrorDetail(
                     code=ErrorCode.INVALID_FILENAME,
@@ -226,6 +248,7 @@ class StructureValidator:
         if discipline_info:
             expected_short = discipline_info["discipline_short"]
             if discipline_part != expected_short:
+                # Сокращение дисциплины из справочника
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_FILENAME,
@@ -236,12 +259,14 @@ class StructureValidator:
 
         worktype_info = self.worktype_map.get(worktype_folder)
         if worktype_info and "alias_of" in worktype_info:
+            # Алиасы приводим к базовой записи
             worktype_info = self.worktype_map.get(worktype_info["alias_of"])
 
         if worktype_info:
             expected_code = worktype_info.get("code")
             match = WORKCODE_RE.match(work_part)
             if not match:
+                # Код работы в PDF не соответствует формату
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_FILENAME,
@@ -252,6 +277,7 @@ class StructureValidator:
                 return
             code, number = match.groups()
             if expected_code and code != expected_code:
+                # Код работы должен совпадать с папкой типа работ
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_FILENAME,
@@ -262,6 +288,7 @@ class StructureValidator:
             number_required = bool(worktype_info.get("number_required"))
             number_forbidden = bool(worktype_info.get("number_forbidden"))
             if number_required and not number:
+                # Номер обязателен
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_FILENAME,
@@ -270,6 +297,7 @@ class StructureValidator:
                     )
                 )
             if number_forbidden and number:
+                # Номер запрещён
                 context.errors.append(
                     ErrorDetail(
                         code=ErrorCode.INVALID_FILENAME,

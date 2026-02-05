@@ -5,6 +5,7 @@ from utils import TitleAnalysisResult
 
 
 def test_decision_rejected_on_errors():
+    # Наличие ошибок должно приводить к отказу
     context = CheckContext(zip_path="test.zip")
     context.errors.append(
         ErrorDetail(code=ErrorCode.INVALID_STRUCTURE, message="bad", path="x")
@@ -14,6 +15,7 @@ def test_decision_rejected_on_errors():
 
 
 def test_decision_with_title_check():
+    # Если титул прошёл по порогу — принимаем
     context = CheckContext(zip_path="test.zip")
     context.title_analysis = TitleAnalysisResult(
         signature_confidence=0.7,

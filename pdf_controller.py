@@ -1,3 +1,5 @@
+"""Работа с PDF внутри ZIP: проверка страниц и извлечение титула."""
+
 import io
 import zipfile
 from typing import Optional
@@ -9,9 +11,11 @@ from errors import ErrorCode, ErrorDetail
 
 class PdfController:
     def __init__(self, min_pages: int = 2) -> None:
+        # Минимальное число страниц (титул + минимум 1)
         self.min_pages = min_pages
 
     def validate_pdf(self, archive: zipfile.ZipFile, pdf_path: str) -> Optional[ErrorDetail]:
+        # Проверяем, что PDF читается и имеет нужное число страниц
         try:
             with archive.open(pdf_path) as handle:
                 data = handle.read()
@@ -31,6 +35,7 @@ class PdfController:
         return None
 
     def extract_title_page(self, archive: zipfile.ZipFile, pdf_path: str) -> Optional[bytes]:
+        # Опционально: извлекаем титульную страницу как PNG
         try:
             from pdf2image import convert_from_bytes
         except ImportError:

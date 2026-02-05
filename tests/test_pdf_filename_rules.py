@@ -5,6 +5,7 @@ from structure_validator import StructureValidator
 
 
 def build_config():
+    # Минимальная конфигурация с алиасом папки практики
     return {
         "disciplines": [
             {
@@ -21,6 +22,7 @@ def build_config():
 
 
 def create_zip(tmp_path: Path, files: dict[str, bytes]) -> Path:
+    # Генерация ZIP для теста
     zip_path = tmp_path / "portfolio.zip"
     with zipfile.ZipFile(zip_path, "w") as archive:
         for name, data in files.items():
@@ -29,6 +31,7 @@ def create_zip(tmp_path: Path, files: dict[str, bytes]) -> Path:
 
 
 def test_practice_requires_pz_code(tmp_path: Path):
+    # Папка "Практические работы" должна требовать код ПЗ
     config = build_config()
     validator = StructureValidator(config)
     files = {
