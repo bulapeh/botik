@@ -193,6 +193,10 @@ class PortfolioBot:
 
         @self.bot.message_handler(content_types=["text"])
         def handle_text(message):
+            # Текстовые сообщения — напоминание о формате загрузки
+            if message.text.startswith("/"):
+                return
+            self.bot.send_message(message.chat.id, "Отправьте ZIP-архив с портфолио для проверки.")
             # Ответы на вопросы студентов через базу знаний
             if message.text.startswith("/"):
                 return
