@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from openai import OpenAI, RateLimitError
+from openai import OpenAI
 
 
 @dataclass
@@ -64,5 +65,13 @@ class QaService:
             )
         except RateLimitError:
             return QaResult(success=False, answer="", error="Rate limit exceeded")
+        response = self._client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=max_tokens,
+        )
         answer = response.choices[0].message.content.strip()
         return QaResult(success=True, answer=answer)
