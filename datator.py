@@ -339,7 +339,10 @@ class PortfolioBot:
             self.bot.send_message(message.chat.id, "Не удалось обработать вопрос. Попробуйте позже.")
             return
         if not result.success:
-            self.bot.send_message(message.chat.id, "Справка сейчас недоступна.")
+            if result.error == "Missing OpenAI API key":
+                self.bot.send_message(message.chat.id, "Справка временно отключена. Обратитесь к администратору.")
+            else:
+                self.bot.send_message(message.chat.id, "Справка сейчас недоступна.")
             return
         self.bot.send_message(message.chat.id, result.answer)
 

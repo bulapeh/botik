@@ -32,6 +32,13 @@ class QaService:
     def answer(self, question: str) -> QaResult:
         if not self._qa_cfg.get("enabled", False):
             return QaResult(success=False, answer="", error="QA disabled")
+        api_key = self._qa_cfg.get("openai_api_key", "")
+        if not api_key or "PUT_OPENAI_KEY_HERE" in api_key:
+            return QaResult(
+                success=False,
+                answer="",
+                error="Missing OpenAI API key",
+            )
 
         model = self._qa_cfg.get("openai_model", "gpt-4o-mini")
         max_tokens = int(self._qa_cfg.get("max_answer_tokens", 500))
