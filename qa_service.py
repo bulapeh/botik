@@ -6,6 +6,10 @@ from pathlib import Path
 import time
 
 from openai import OpenAI, RateLimitError
+from pathlib import Path
+
+from openai import OpenAI, RateLimitError
+from openai import OpenAI
 
 
 @dataclass
@@ -68,6 +72,11 @@ class QaService:
             local = self._local_answer(question)
             if local:
                 return QaResult(success=True, answer=local, source="local")
+    def answer(self, question: str) -> QaResult:
+        if not self._qa_cfg.get("enabled", False):
+            return QaResult(success=False, answer="", error="QA disabled")
+        api_key = self._qa_cfg.get("openai_api_key", "")
+        if not api_key or "PUT_OPENAI_KEY_HERE" in api_key:
             return QaResult(
                 success=False,
                 answer="",
@@ -117,3 +126,15 @@ class QaService:
         while len(self._cache) > max(cache_size, 1):
             self._cache.popitem(last=False)
         return QaResult(success=True, answer=answer, source="openai")
+        except RateLimitError:
+            return QaResult(success=False, answer="", error="Rate limit exceeded")
+        response = self._client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=max_tokens,
+        )
+        answer = response.choices[0].message.content.strip()
+        return QaResult(success=True, answer=answer)

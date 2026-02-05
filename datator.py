@@ -347,6 +347,8 @@ class PortfolioBot:
                 self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
             elif result.error == "Rate limit cooldown":
                 self.bot.send_message(message.chat.id, "Справка временно недоступна. Попробуйте позже.")
+            elif result.error == "Rate limit exceeded":
+                self.bot.send_message(message.chat.id, "Лимит запросов к справке исчерпан. Попробуйте позже.")
             else:
                 self.bot.send_message(message.chat.id, "Справка сейчас недоступна.")
             return

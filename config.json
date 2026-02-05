@@ -76,5 +76,6 @@
     "rate_limit_cooldown_sec": 60,
     "fallback_local_enabled": true,
     "cache_size": 50
+    "max_answer_tokens": 500
   }
 }
